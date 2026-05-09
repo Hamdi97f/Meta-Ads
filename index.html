@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+<meta name="theme-color" content="#1877f2" />
+<title>محلل إعلانات ميتا — Meta Ads Analyser</title>
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#162032;
+    --muted:#8aa0bf;
+    --text:#e7eefc;
+    --accent:#1877f2;
+    --accent-2:#42b72a;
+    --danger:#e74c3c;
+    --warn:#f39c12;
+    --ok:#2ecc71;
+    --info:#3498db;
+    --border:#243349;
+    --radius:14px;
+    --shadow:0 8px 24px rgba(0,0,0,.25);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Arabic", "Noto Sans", sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:linear-gradient(180deg,#0b1220,#0f1724);color:var(--text);min-height:100%}
+  body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+  .wrap{max-width:760px;margin:0 auto;padding:16px}
+  header{
+    text-align:center;padding:20px 12px 8px;
+  }
+  header h1{margin:0;font-size:1.35rem;letter-spacing:.2px}
+  header p{margin:6px 0 0;color:var(--muted);font-size:.92rem}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;margin:14px 0;box-shadow:var(--shadow);
+  }
+  .card h2{margin:0 0 12px;font-size:1.05rem;color:#cfe0ff}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:480px){.grid{grid-template-columns:1fr}}
+  label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:6px}
+  input,select{
+    width:100%;padding:12px 12px;border-radius:10px;border:1px solid var(--border);
+    background:#0e1828;color:var(--text);font-size:16px; /* 16px prevents iOS zoom */
+    outline:none;transition:border-color .15s, box-shadow .15s;
+  }
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(24,119,242,.25)}
+  .row{margin-bottom:10px}
+  .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  button{
+    flex:1;min-width:140px;padding:14px 16px;border-radius:12px;border:0;
+    font-size:1rem;font-weight:700;cursor:pointer;
+  }
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:active{transform:translateY(1px)}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+  .metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media (min-width:520px){.metrics{grid-template-columns:repeat(3,1fr)}}
+  .metric{background:#0e1828;border:1px solid var(--border);border-radius:10px;padding:10px}
+  .metric .k{font-size:.75rem;color:var(--muted)}
+  .metric .v{font-size:1.05rem;font-weight:700;margin-top:2px;direction:ltr;text-align:right}
+  .verdict{padding:14px;border-radius:12px;border:1px solid var(--border);margin-bottom:10px}
+  .verdict.priority{background:linear-gradient(180deg,#1a2740,#142036);border-color:#2a3e62}
+  .badge{display:inline-block;font-size:.72rem;padding:3px 8px;border-radius:999px;background:#22324d;color:#cfe0ff;margin-inline-start:6px}
+  .badge.cat{background:#22324d}
+  .verdict h3{margin:0 0 6px;font-size:1rem}
+  .verdict .diag{margin:6px 0;font-size:.98rem;line-height:1.55}
+  .verdict .advice{color:#d5e3fb;font-size:.92rem;line-height:1.6;background:#0e1828;border:1px dashed var(--border);border-radius:10px;padding:10px;margin-top:8px}
+  .action-code{
+    display:inline-block;font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size:.78rem;padding:4px 8px;border-radius:8px;color:#fff;
+  }
+  .ac-KILL_AD_IMMEDIATELY{background:var(--danger)}
+  .ac-OPTIMIZE_OR_PAUSE{background:#c0392b}
+  .ac-FIX_SITE_SPEED{background:#d35400}
+  .ac-REVAMP_LANDING_PAGE{background:#8e44ad}
+  .ac-FIX_CHECKOUT_FRICTION{background:#16a085}
+  .ac-GUIDE_THE_AI{background:#2980b9}
+  .ac-ALIGN_CREATIVE_INTENT{background:#e67e22}
+  .ac-REFRESH_CREATIVE{background:#f39c12;color:#1a1a1a}
+  .ac-NARROW_OR_CHANGE_ANGLE{background:#9b59b6}
+  .ac-SCALE_UP{background:var(--ok)}
+  .ac-ALL_GOOD{background:#27ae60}
+  .empty{color:var(--muted);text-align:center;padding:18px}
+  .footnote{color:var(--muted);font-size:.78rem;text-align:center;margin:18px 0 8px}
+  .hidden{display:none}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+  .currency{display:flex;align-items:center;gap:6px}
+  .currency input{width:80px;text-align:center;direction:ltr}
+  details summary{cursor:pointer;color:var(--muted);font-size:.88rem;padding:6px 0}
+  .legend{font-size:.8rem;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📊 محلل إعلانات ميتا</h1>
+    <p>Full Funnel · Target CPA · v2.0 PRO</p>
+  </header>
+
+  <form id="ads-form" novalidate>
+    <!-- Settings -->
+    <section class="card">
+      <div class="topbar">
+        <h2>⚙️ الإعدادات</h2>
+        <div class="currency">
+          <label for="currency" style="margin:0">العملة</label>
+          <input id="currency" type="text" value="USD" maxlength="6" />
+        </div>
+      </div>
+      <div class="grid">
+        <div class="row">
+          <label for="target_cpa">الـ CPA المستهدف</label>
+          <input id="target_cpa" type="number" step="0.01" min="0" inputmode="decimal" placeholder="مثلاً 10" required />
+        </div>
+        <div class="row">
+          <label for="product_price">سعر المنتج</label>
+          <input id="product_price" type="number" step="0.01" min="0" inputmode="decimal" placeholder="مثلاً 69" />
+        </div>
+        <div class="row">
+          <label for="product_type">نوع المنتج</label>
+          <select id="product_type">
+            <option value="physical_product">منتج مادي (Physical)</option>
+            <option value="software">سوفتوير / اشتراك</option>
+            <option value="lead_gen">جلب عملاء (Lead Gen)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="is_advantage_plus">Advantage+ مفعّل؟</label>
+          <select id="is_advantage_plus">
+            <option value="false">لا</option>
+            <option value="true">نعم</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Campaign data -->
+    <section class="card">
+      <h2>📥 بيانات الحملة</h2>
+      <div class="grid">
+        <div class="row"><label for="spend">المصاريف (Spend)</label>
+          <input id="spend" type="number" step="0.01" min="0" inputmode="decimal" required /></div>
+        <div class="row"><label for="revenue">المداخيل (Revenue)</label>
+          <input id="revenue" type="number" step="0.01" min="0" inputmode="decimal" /></div>
+        <div class="row"><label for="purchases">عدد المبيعات (Purchases)</label>
+          <input id="purchases" type="number" step="1" min="0" inputmode="numeric" required /></div>
+        <div class="row"><label for="impressions">Impressions</label>
+          <input id="impressions" type="number" step="1" min="0" inputmode="numeric" required /></div>
+        <div class="row"><label for="reach">Reach</label>
+          <input id="reach" type="number" step="1" min="0" inputmode="numeric" required /></div>
+        <div class="row"><label for="clicks_all">Clicks (All)</label>
+          <input id="clicks_all" type="number" step="1" min="0" inputmode="numeric" /></div>
+        <div class="row"><label for="clicks_link">Clicks (Link)</label>
+          <input id="clicks_link" type="number" step="1" min="0" inputmode="numeric" /></div>
+        <div class="row"><label for="landing_page_views">Landing Page Views</label>
+          <input id="landing_page_views" type="number" step="1" min="0" inputmode="numeric" /></div>
+        <div class="row"><label for="add_to_cart">Add to Cart</label>
+          <input id="add_to_cart" type="number" step="1" min="0" inputmode="numeric" /></div>
+        <div class="row"><label for="initiate_checkout">Initiate Checkout</label>
+          <input id="initiate_checkout" type="number" step="1" min="0" inputmode="numeric" /></div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn-primary">🔍 حلّل الحملة</button>
+        <button type="button" id="reset-btn" class="btn-ghost">إعادة تعيين</button>
+      </div>
+      <p class="legend">المعطيات تتسجل محلياً في تليفونك فقط (LocalStorage). ما فما تسجيل دخول.</p>
+    </section>
+  </form>
+
+  <!-- Results -->
+  <section id="results" class="card hidden" aria-live="polite">
+    <h2>📈 المؤشرات المحسوبة</h2>
+    <div id="metrics" class="metrics"></div>
+
+    <h2 style="margin-top:18px">🎯 التشخيص و التوصيات</h2>
+    <div id="verdicts"></div>
+
+    <details>
+      <summary>عرض كل الـ Action Codes الممكنة</summary>
+      <div id="all-rules" class="legend"></div>
+    </details>
+  </section>
+
+  <p class="footnote">© Meta Ads Analyser · Strategy: Full Funnel Target CPA · v2.0 PRO</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Rules engine (mirrors the JSON spec) ----------
+  // Each rule returns true/false given the computed `m` (metrics + inputs).
+  const RULES = [
+    {
+      priority:1, category:"DISASTER_RECOVERY", rule_id:"critical_bleeding",
+      test: m => m.purchases === 0 && m.spend >= (m.target_cpa * 2),
+      diagnostic:"🚨 استنزاف حاد للميزانية: صرفت الدوبل متاع الـ CPA المستهدف وما فما حتى بيعة.",
+      action_code:"KILL_AD_IMMEDIATELY",
+      advice:"قص الإعلان فوراً. الفلوس قاعدة تمشي في الفارغ، فما مشكلة كبيرة (Bug في الموقع أو عرض غير مقبول تماماً)."
+    },
+    {
+      priority:2, category:"FINANCIAL_OPTIMIZATION", rule_id:"unprofitable_sales",
+      test: m => m.purchases > 0 && m.cpa_actual > m.target_cpa,
+      diagnostic:"⚠️ مبيعات بالخسارة: المبيعة قاعدة تتكلف أكثر ملّي حددتو (CPA طالع).",
+      action_code:"OPTIMIZE_OR_PAUSE",
+      advice:"إذا تبيع في منتج ملموس، حاول تزيد منتج آخر معاه (Upsell) باش تطلع الـ Panier Moyen. إذا سوفتوير، راجع سعر الاشتراك أو العرض."
+    },
+    {
+      priority:3, category:"TECHNICAL_LEAK", rule_id:"site_speed_critical",
+      test: m => m.clicks_link > 50 && m.load_rate < 60,
+      diagnostic:"🐌 هروب تقني: أكثر من 40% من العباد نزلو على الرابط وهربو قبل ما يتحل السيت.",
+      action_code:"FIX_SITE_SPEED",
+      advice:"الموقع متاعك رزين برشا. العباد قاعدة تضيع في ثنية الـ Chargement. حسّن الـ Hosting أو صغّر التصاور."
+    },
+    {
+      priority:4, category:"OFFER_MISMATCH", rule_id:"zero_add_to_cart",
+      test: m => m.landing_page_views > 100 && m.add_to_cart === 0,
+      diagnostic:"🥶 برود تام في الموقع: العباد تدخل وتقرا، أما حتى حد ما ينزل 'أضف للسلة'.",
+      action_code:"REVAMP_LANDING_PAGE",
+      advice:"العرض (Offer) ما أقنعهمش أو السوم غالي. إذا كان البرنامج Offline، وضح مليح اللي راهو ما يستحقش انترنات، وإذا منتج مادي وضح الفائدة متاعو مباشرة."
+    },
+    {
+      priority:5, category:"CHECKOUT_LEAK", rule_id:"high_checkout_abandonment",
+      test: m => m.initiate_checkout > 10 && m.checkout_dropoff > 80,
+      diagnostic:"🛒 تخلي عن الشراء: العباد وصلت لآخر مرحلة باش تخلص/تعدي الكومند وبطلت.",
+      action_code:"FIX_CHECKOUT_FRICTION",
+      advice:"غالباً المشكلة في تكلفة التوصيل (Livraison) صدمتهم، أو الفورمولار طويل برشا، أو ما فماش ثقة كافية (زيد آراء حرفاء)."
+    },
+    {
+      priority:6, category:"AUDIENCE_QUALITY", rule_id:"advantage_plus_confused",
+      test: m => m.is_advantage_plus === true && m.audience_accuracy < 20,
+      diagnostic:"🤖 ذكاء اصطناعي ضائع: Meta Advantage+ قاعد يجيب في عباد غالطة تتفاعل وما تكليكيش.",
+      action_code:"GUIDE_THE_AI",
+      advice:"خوارزمية فيسبوك ما فهمتش شكون الكليون متاعك. لازمك تبدل الـ Creative وتكتب ميساج واضح (مثلا: 'لأصحاب المطاعم' أو 'لأصحاب الشركات') باش توجه الـ AI."
+    },
+    {
+      priority:7, category:"CREATIVE_EFFICIENCY", rule_id:"clickbait_creative",
+      test: m => m.ctr_all > 5 && m.ctr_link < 1,
+      diagnostic:"🎣 فخ نقرات (Clickbait): تفاعل وهمي عالي جداً مع نسبة زيارات ضعيفة.",
+      action_code:"ALIGN_CREATIVE_INTENT",
+      advice:"التصويرة أو الفيديو تجيب في الـ J'aime أما ما تبيعش. ركز في الفيديو الجاي على حل المشكلة متاع الحريف موش على البوز."
+    },
+    {
+      priority:8, category:"CREATIVE_EFFICIENCY", rule_id:"ad_fatigue",
+      test: m => m.frequency > 3 && m.cpa_actual >= m.target_cpa,
+      diagnostic:"🥱 إرهاق إعلاني (Ad Fatigue): الإعلان تحرق والجمهور فد منو.",
+      action_code:"REFRESH_CREATIVE",
+      advice:"نفس العباد شافت الإعلان برشا مرات. بدّل الـ Hook (أول 3 ثواني) أو اصنع زوايا تسويقية جديدة."
+    },
+    {
+      priority:9, category:"COST_WARNING", rule_id:"high_cpm_barrier",
+      test: m => m.cpm > 10 && m.ctr_link < 1.5,
+      diagnostic:"💰 منافسة شرسة: الـ CPM غالي برشا (قاعد تخلص برشا باش تظهر) والـ CTR طايح.",
+      action_code:"NARROW_OR_CHANGE_ANGLE",
+      advice:"الجمهور اللي تستهدف فيه عليه برشا منافسة. جرب وسّع الجمهور شوية أو بدّل الـ Message باش تطلع الـ CTR وتطيح التكلفة."
+    },
+    {
+      priority:10, category:"SCALING", rule_id:"profitable_scaling",
+      test: m => m.purchases > 1 && m.cpa_actual <= m.target_cpa && m.frequency < 2.5,
+      diagnostic:"🚀 حملة ناجحة ومربحة: الأرقام ممتازة والتكلفة تحت السيطرة.",
+      action_code:"SCALE_UP",
+      advice:"الـ Funnel يخدم بالباهي. زيد في الميزانية (Budget) بنسبة 20% كل يومين (Scaling) واستحفظ على نفس الإعدادات."
+    }
+  ];
+
+  // ---------- Helpers ----------
+  const $ = id => document.getElementById(id);
+  const num = id => {
+    const v = parseFloat($(id).value);
+    return isFinite(v) && v >= 0 ? v : 0;
+  };
+  const intnum = id => {
+    const v = parseInt($(id).value, 10);
+    return isFinite(v) && v >= 0 ? v : 0;
+  };
+  const fmt = (v, digits=2) => {
+    if (!isFinite(v)) return "—";
+    return Number(v).toLocaleString("en-US", {maximumFractionDigits: digits, minimumFractionDigits: 0});
+  };
+  const safeDiv = (a, b) => b > 0 ? a / b : 0;
+
+  // ---------- Inputs / metrics ----------
+  function readInputs(){
+    return {
+      currency: ($("currency").value || "").trim() || "USD",
+      target_cpa: num("target_cpa"),
+      product_price: num("product_price"),
+      product_type: $("product_type").value,
+      is_advantage_plus: $("is_advantage_plus").value === "true",
+      spend: num("spend"),
+      revenue: num("revenue"),
+      purchases: intnum("purchases"),
+      impressions: intnum("impressions"),
+      reach: intnum("reach"),
+      clicks_all: intnum("clicks_all"),
+      clicks_link: intnum("clicks_link"),
+      landing_page_views: intnum("landing_page_views"),
+      add_to_cart: intnum("add_to_cart"),
+      initiate_checkout: intnum("initiate_checkout")
+    };
+  }
+
+  function computeMetrics(i){
+    const m = Object.assign({}, i);
+    m.cpa_actual       = safeDiv(i.spend, Math.max(i.purchases, 1));
+    m.cpm              = safeDiv(i.spend, i.impressions) * 1000;
+    m.cpc_link         = safeDiv(i.spend, Math.max(i.clicks_link, 1));
+    m.ctr_all          = safeDiv(i.clicks_all, i.impressions) * 100;
+    m.ctr_link         = safeDiv(i.clicks_link, i.impressions) * 100;
+    m.frequency        = safeDiv(i.impressions, i.reach);
+    m.load_rate        = safeDiv(i.landing_page_views, Math.max(i.clicks_link, 1)) * 100;
+    m.atc_rate         = safeDiv(i.add_to_cart, Math.max(i.landing_page_views, 1)) * 100;
+    m.checkout_dropoff = 100 - safeDiv(i.purchases, Math.max(i.initiate_checkout, 1)) * 100;
+    m.audience_accuracy= safeDiv(m.ctr_link, Math.max(m.ctr_all, 1)) * 100;
+    m.roas             = safeDiv(i.revenue, i.spend);
+    return m;
+  }
+
+  function evaluate(m){
+    // Sort by priority ascending, return all matching rules
+    return RULES
+      .filter(r => {
+        try { return !!r.test(m); } catch(e){ return false; }
+      })
+      .sort((a,b) => a.priority - b.priority);
+  }
+
+  // ---------- Rendering ----------
+  function renderMetrics(m){
+    const cur = m.currency;
+    const items = [
+      ["CPA الحالي", `${fmt(m.cpa_actual)} ${cur}`],
+      ["CPA المستهدف", `${fmt(m.target_cpa)} ${cur}`],
+      ["CPM", `${fmt(m.cpm)} ${cur}`],
+      ["CPC (Link)", `${fmt(m.cpc_link)} ${cur}`],
+      ["CTR (All)", `${fmt(m.ctr_all)} %`],
+      ["CTR (Link)", `${fmt(m.ctr_link)} %`],
+      ["Frequency", `${fmt(m.frequency)}`],
+      ["Load Rate", `${fmt(m.load_rate)} %`],
+      ["ATC Rate", `${fmt(m.atc_rate)} %`],
+      ["Checkout Drop-off", `${fmt(m.checkout_dropoff)} %`],
+      ["Audience Accuracy", `${fmt(m.audience_accuracy)} %`],
+      ["ROAS", `${fmt(m.roas)}×`]
+    ];
+    $("metrics").innerHTML = items.map(([k,v]) =>
+      `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`
+    ).join("");
+  }
+
+  function renderVerdicts(matches){
+    const wrap = $("verdicts");
+    if (!matches.length){
+      wrap.innerHTML = `<div class="verdict">
+        <h3>✅ مافما حتى مشكل بارز
+          <span class="action-code ac-ALL_GOOD">ALL_GOOD</span>
+        </h3>
+        <div class="diag">الحملة ما طلعتش أي قاعدة من قواعد الإنذار. كمل ملاحظة و راقب يومياً.</div>
+      </div>`;
+      return;
+    }
+    wrap.innerHTML = matches.map((r, idx) => {
+      const isTop = idx === 0;
+      return `
+        <div class="verdict ${isTop ? "priority" : ""}">
+          <h3>
+            ${isTop ? "🥇 الأولوية القصوى — " : ""}${escapeHtml(r.category)}
+            <span class="badge">P${r.priority}</span>
+            <span class="action-code ac-${r.action_code}">${r.action_code}</span>
+          </h3>
+          <div class="diag">${escapeHtml(r.diagnostic)}</div>
+          <div class="advice">💡 ${escapeHtml(r.advice)}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderAllRulesLegend(){
+    $("all-rules").innerHTML = RULES.map(r =>
+      `<div>• <b>P${r.priority}</b> — ${escapeHtml(r.category)} · <code>${r.action_code}</code></div>`
+    ).join("");
+  }
+
+  function escapeHtml(s){
+    return String(s)
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  }
+
+  // ---------- Persistence ----------
+  const STORAGE_KEY = "metaAdsAnalyser_v2";
+  const FIELDS = ["currency","target_cpa","product_price","product_type","is_advantage_plus",
+    "spend","revenue","purchases","impressions","reach","clicks_all","clicks_link",
+    "landing_page_views","add_to_cart","initiate_checkout"];
+
+  function saveState(){
+    try{
+      const data = {};
+      FIELDS.forEach(f => data[f] = $(f).value);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }catch(e){/* ignore */}
+  }
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      FIELDS.forEach(f => { if (data[f] !== undefined) $(f).value = data[f]; });
+    }catch(e){/* ignore */}
+  }
+
+  // ---------- Wire up ----------
+  document.addEventListener("DOMContentLoaded", () => {
+    loadState();
+    renderAllRulesLegend();
+
+    $("ads-form").addEventListener("submit", e => {
+      e.preventDefault();
+      const inputs = readInputs();
+      if (inputs.target_cpa <= 0){
+        alert("الرجاء إدخال الـ CPA المستهدف (أكبر من صفر).");
+        $("target_cpa").focus();
+        return;
+      }
+      if (inputs.spend <= 0 && inputs.impressions <= 0){
+        alert("الرجاء إدخال على الأقل المصاريف (Spend) و الـ Impressions.");
+        return;
+      }
+      saveState();
+      const m = computeMetrics(inputs);
+      const matches = evaluate(m);
+      renderMetrics(m);
+      renderVerdicts(matches);
+      const r = $("results");
+      r.classList.remove("hidden");
+      r.scrollIntoView({behavior:"smooth", block:"start"});
+    });
+
+    $("reset-btn").addEventListener("click", () => {
+      if (!confirm("تحب تمسح كل المعطيات؟")) return;
+      FIELDS.forEach(f => {
+        const el = $(f);
+        if (el.tagName === "SELECT") el.selectedIndex = 0;
+        else if (f === "currency") el.value = "USD";
+        else el.value = "";
+      });
+      try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+      $("results").classList.add("hidden");
+      window.scrollTo({top:0, behavior:"smooth"});
+    });
+
+    // Auto-save on input changes
+    FIELDS.forEach(f => {
+      $(f).addEventListener("change", saveState);
+    });
+  });
+})();
+</script>
+</body>
+</html>
