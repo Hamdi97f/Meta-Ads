@@ -234,7 +234,7 @@
       priority:1, key:"DISASTER", label:"P1 · DISASTER — نزاف ميزانية",
       severity:"disaster", action:"KILL AD", icon:"🛑",
       msg:"نزاف حاد للميزانية. أوقف الإعلان فوراً. — Estنزاف: aucune vente avec 2× le Target CPA déjà dépensé.",
-      test: m => m.purchases === 0 && m.target_cpa > 0 && m.spend >= m.target_cpa * 2
+      test: m => m.purchases === 0 && m.target_cpa > 0 && m.spend > 0 && m.spend >= m.target_cpa * 2
     },
     {
       priority:2, key:"UNPROFITABLE", label:"P2 · UNPROFITABLE — بيع بالخسارة",
@@ -246,7 +246,7 @@
       priority:3, key:"AUDIENCE_AI", label:"P3 · AUDIENCE / AI — الخوارزمية ضايعة",
       severity:"warn", action:"GUIDE AI", icon:"🤖",
       msg:"L'algorithme Advantage+ est perdu (Clickbait). Modifiez le créatif pour cibler la bonne audience.",
-      test: m => m.is_advantage_plus === true && m.audience_accuracy < 30
+      test: m => m.is_advantage_plus === true && m.ctr_all > 0 && m.audience_accuracy < 30
     },
     {
       priority:4, key:"CLICKBAIT", label:"P4 · CLICKBAIT — تفاعل وهمي",
