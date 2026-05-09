@@ -4,7 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
 <meta name="theme-color" content="#1877f2" />
-<title>محلل إعلانات ميتا — Meta Ads Analyser</title>
+<title>AdAnalyzer Pro — محلل إعلانات ميتا</title>
+<!-- Tailwind CSS (Play CDN) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Chart.js for the Radar Chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- Tesseract.js for OCR on screenshots -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.4/dist/tesseract.min.js"></script>
 <style>
   :root{
     --bg:#0f1724;
@@ -89,13 +95,31 @@
   .currency input{width:80px;text-align:center;direction:ltr}
   details summary{cursor:pointer;color:var(--muted);font-size:.88rem;padding:6px 0}
   .legend{font-size:.8rem;color:var(--muted);margin-top:6px}
+
+  /* AdAnalyzer Pro additions */
+  .verdict.p-disaster{background:linear-gradient(180deg,#3a1417,#2a0e10);border-color:#7a2630}
+  .verdict.p-warn{background:linear-gradient(180deg,#3a2a10,#2a1f0c);border-color:#8a6512}
+  .verdict.p-info{background:linear-gradient(180deg,#102a3a,#0c1f2a);border-color:#1f5778}
+  .verdict.p-good{background:linear-gradient(180deg,#10301c,#0c2316);border-color:#1f7a45}
+  .verdict h3.big{font-size:1.15rem}
+  .sec-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .sec-item{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#0e1828}
+  .sec-item.good{border-color:#1f7a45;background:#0e2218}
+  .sec-item .ic{font-size:1.05rem;line-height:1.4}
+  .sec-item .body{flex:1}
+  .sec-item .ttl{font-weight:700;font-size:.92rem}
+  .sec-item .msg{color:var(--muted);font-size:.85rem;margin-top:2px}
+  .ocr-box{border:1px dashed var(--border);border-radius:12px;padding:10px;background:#0e1828}
+  .ocr-progress{height:6px;border-radius:999px;background:#1a2740;overflow:hidden;margin-top:8px}
+  .ocr-progress > span{display:block;height:100%;width:0%;background:var(--accent);transition:width .2s}
+  .chart-wrap{position:relative;width:100%;max-width:420px;margin:8px auto 0}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>📊 محلل إعلانات ميتا</h1>
-    <p>Full Funnel · Target CPA · v2.0 PRO</p>
+    <h1>📊 AdAnalyzer Pro</h1>
+    <p>Full-Funnel Decision Tree · Target CPA · v3.0 PRO</p>
   </header>
 
   <form id="ads-form" novalidate>
@@ -110,7 +134,7 @@
       </div>
       <div class="grid">
         <div class="row">
-          <label for="target_cpa">الـ CPA المستهدف</label>
+          <label for="target_cpa">Target CPA — الـ CPA المستهدف <span style="color:var(--danger)">*</span></label>
           <input id="target_cpa" type="number" step="0.01" min="0" inputmode="decimal" placeholder="مثلاً 10" required />
         </div>
         <div class="row">
@@ -118,11 +142,11 @@
           <input id="product_price" type="number" step="0.01" min="0" inputmode="decimal" placeholder="مثلاً 69" />
         </div>
         <div class="row">
-          <label for="product_type">نوع المنتج</label>
+          <label for="product_type">Type de Produit — نوع المنتج</label>
           <select id="product_type">
-            <option value="physical_product">منتج مادي (Physical)</option>
-            <option value="software">سوفتوير / اشتراك</option>
-            <option value="lead_gen">جلب عملاء (Lead Gen)</option>
+            <option value="physical_product">Produit Physique (E-commerce)</option>
+            <option value="software">Software / SaaS</option>
+            <option value="lead_gen">Lead Gen (Services)</option>
           </select>
         </div>
         <div class="row">
@@ -137,11 +161,22 @@
 
     <!-- Meta indicators (taken directly from Ads Manager) -->
     <section class="card">
-      <h2>📊 مؤشرات Meta</h2>
-      <p class="legend" style="margin:0 0 10px">اكتب المؤشرات كيما تظهرلك في Meta Ads Manager. المطلوب الإجباري هو الـ CPA (Cost per Purchase).</p>
+      <h2>📊 مؤشرات Meta — Dakhel les Datas</h2>
+      <p class="legend" style="margin:0 0 10px">اكتب المؤشرات كيما تظهرلك في Meta Ads Manager. ولا حمّل Screenshot وخلي الـ OCR يقراهم.</p>
+
+      <!-- OCR upload -->
+      <div class="ocr-box row">
+        <label for="ocr_file" style="margin-bottom:8px">📷 OCR — حمّل Screenshot من Ads Manager</label>
+        <input id="ocr_file" type="file" accept="image/*" />
+        <div id="ocr_status" class="legend" style="margin-top:6px">جاهز. اختار صورة باش نقرا الأرقام أوتوماتيكياً.</div>
+        <div class="ocr-progress" aria-hidden="true"><span id="ocr_bar"></span></div>
+      </div>
+
       <div class="grid">
-        <div class="row"><label for="cpa_input">Cost per Purchase (CPA)</label>
-          <input id="cpa_input" type="number" step="0.01" min="0" inputmode="decimal" required /></div>
+        <div class="row"><label for="spend_input">Spend (إجمالي المصروف)</label>
+          <input id="spend_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
+        <div class="row"><label for="purchases_input">Purchases (عدد المبيعات)</label>
+          <input id="purchases_input" type="number" step="1" min="0" inputmode="numeric" /></div>
         <div class="row"><label for="cpm_input">CPM (Cost per 1,000 Impressions)</label>
           <input id="cpm_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
         <div class="row"><label for="cpc_link_input">CPC (Cost per Link Click)</label>
@@ -152,6 +187,8 @@
           <input id="ctr_link_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
         <div class="row"><label for="frequency_input">Frequency</label>
           <input id="frequency_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
+        <div class="row"><label for="cpa_input">Cost per Purchase (CPA) — اختياري</label>
+          <input id="cpa_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
       </div>
       <div class="actions">
         <button type="submit" class="btn-primary">🔍 حلّل الحملة</button>
@@ -166,90 +203,95 @@
     <h2>📈 المؤشرات المحسوبة</h2>
     <div id="metrics" class="metrics"></div>
 
-    <h2 style="margin-top:18px">🎯 التشخيص و التوصيات</h2>
-    <div id="verdicts"></div>
+    <h2 style="margin-top:18px">🎯 التشخيص الأساسي — Main Diagnostic</h2>
+    <div id="main-diagnostic"></div>
 
-    <details>
-      <summary>عرض كل الـ Action Codes الممكنة</summary>
+    <h2 style="margin-top:18px">⚠️ Points d'attention secondaires</h2>
+    <div id="secondary-warnings" class="sec-list"></div>
+
+    <h2 style="margin-top:18px">📡 Radar Score</h2>
+    <div class="chart-wrap"><canvas id="radarChart" height="360"></canvas></div>
+
+    <details style="margin-top:14px">
+      <summary>عرض كل قواعد الـ Decision Tree</summary>
       <div id="all-rules" class="legend"></div>
     </details>
   </section>
 
-  <p class="footnote">© Meta Ads Analyser · Strategy: Full Funnel Target CPA · v2.0 PRO</p>
+  <p class="footnote">© AdAnalyzer Pro · Full-Funnel Decision Tree · v3.0 PRO</p>
 </div>
 
 <script>
 (function(){
   "use strict";
 
-  // ---------- Rules engine (mirrors the JSON spec) ----------
-  // Each rule returns true/false given the computed `m` (metrics + inputs).
+  // ---------- P1–P7 Decision Tree (Priority 1 = highest) ----------
+  // Each rule has: priority, key, label, severity, action, msg, test().
+  // severity → main-card style class:
+  //   "disaster" (red), "warn" (orange), "info" (blue), "good" (green)
   const RULES = [
     {
-      priority:1, category:"FINANCIAL_OPTIMIZATION", rule_id:"unprofitable_sales",
-      test: m => m.cpa_actual > m.target_cpa,
-      diagnostic:"⚠️ مبيعات بالخسارة: المبيعة قاعدة تتكلف أكثر ملّي حددتو (CPA طالع).",
-      action_code:"OPTIMIZE_OR_PAUSE",
-      advice:"إذا تبيع في منتج ملموس، حاول تزيد منتج آخر معاه (Upsell) باش تطلع الـ Panier Moyen. إذا سوفتوير، راجع سعر الاشتراك أو العرض."
+      priority:1, key:"DISASTER", label:"P1 · DISASTER — نزاف ميزانية",
+      severity:"disaster", action:"KILL AD", icon:"🛑",
+      msg:"نزاف حاد للميزانية. أوقف الإعلان فوراً. — Estنزاف: aucune vente avec 2× le Target CPA déjà dépensé.",
+      test: m => m.purchases === 0 && m.target_cpa > 0 && m.spend > 0 && m.spend >= m.target_cpa * 2
     },
     {
-      priority:2, category:"AUDIENCE_QUALITY", rule_id:"advantage_plus_confused",
-      test: m => m.is_advantage_plus === true && m.ctr_all > 0 && m.ctr_link > 0 && m.audience_accuracy < 20,
-      diagnostic:"🤖 ذكاء اصطناعي ضائع: Meta Advantage+ قاعد يجيب في عباد غالطة تتفاعل وما تكليكيش.",
-      action_code:"GUIDE_THE_AI",
-      advice:"خوارزمية فيسبوك ما فهمتش شكون الكليون متاعك. لازمك تبدل الـ Creative وتكتب ميساج واضح (مثلا: 'لأصحاب المطاعم' أو 'لأصحاب الشركات') باش توجه الـ AI."
+      priority:2, key:"UNPROFITABLE", label:"P2 · UNPROFITABLE — بيع بالخسارة",
+      severity:"disaster", action:"OPTIMIZE", icon:"💸",
+      msg:"CPA actuel est supérieur au Target CPA. Vente à perte. Révisez l'offre ou faites de l'upsell.",
+      test: m => m.purchases > 0 && m.cpa_actual > m.target_cpa
     },
     {
-      priority:3, category:"CREATIVE_EFFICIENCY", rule_id:"clickbait_creative",
-      test: m => m.ctr_all > 5 && m.ctr_link > 0 && m.ctr_link < 1,
-      diagnostic:"🎣 فخ نقرات (Clickbait): تفاعل وهمي عالي جداً مع نسبة زيارات ضعيفة.",
-      action_code:"ALIGN_CREATIVE_INTENT",
-      advice:"التصويرة أو الفيديو تجيب في الـ J'aime أما ما تبيعش. ركز في الفيديو الجاي على حل المشكلة متاع الحريف موش على البوز."
+      priority:3, key:"AUDIENCE_AI", label:"P3 · AUDIENCE / AI — الخوارزمية ضايعة",
+      severity:"warn", action:"GUIDE AI", icon:"🤖",
+      msg:"L'algorithme Advantage+ est perdu (Clickbait). Modifiez le créatif pour cibler la bonne audience.",
+      test: m => m.is_advantage_plus === true && m.ctr_all > 0 && m.audience_accuracy < 30
     },
     {
-      priority:4, category:"CREATIVE_EFFICIENCY", rule_id:"ad_fatigue",
-      test: m => m.frequency > 3 && m.cpa_actual >= m.target_cpa,
-      diagnostic:"🥱 إرهاق إعلاني (Ad Fatigue): الإعلان تحرق والجمهور فد منو.",
-      action_code:"REFRESH_CREATIVE",
-      advice:"نفس العباد شافت الإعلان برشا مرات. بدّل الـ Hook (أول 3 ثواني) أو اصنع زوايا تسويقية جديدة."
+      priority:4, key:"CLICKBAIT", label:"P4 · CLICKBAIT — تفاعل وهمي",
+      severity:"warn", action:"ALIGN INTENT", icon:"🎣",
+      msg:"Faux engagement. Beaucoup de J'aime mais pas de trafic. Changez le Call to Action.",
+      test: m => m.ctr_all > 5 && m.ctr_link < 1
     },
     {
-      priority:5, category:"COST_WARNING", rule_id:"high_cpm_barrier",
-      test: m => m.cpm > 10 && m.ctr_link > 0 && m.ctr_link < 1.5,
-      diagnostic:"💰 منافسة شرسة: الـ CPM غالي برشا (قاعد تخلص برشا باش تظهر) والـ CTR طايح.",
-      action_code:"NARROW_OR_CHANGE_ANGLE",
-      advice:"الجمهور اللي تستهدف فيه عليه برشا منافسة. جرب وسّع الجمهور شوية أو بدّل الـ Message باش تطلع الـ CTR وتطيح التكلفة."
+      priority:5, key:"FATIGUE", label:"P5 · FATIGUE — إرهاق إعلاني",
+      severity:"warn", action:"REFRESH", icon:"🥱",
+      msg:"Ad Fatigue détectée. L'audience est saturée, changez le visuel.",
+      test: m => m.frequency > 3 && m.cpa_actual >= m.target_cpa
     },
     {
-      priority:6, category:"SCALING", rule_id:"profitable_scaling",
-      test: m => m.cpa_actual <= m.target_cpa && m.frequency > 0 && m.frequency < 2.5,
-      diagnostic:"🚀 حملة ناجحة ومربحة: الأرقام ممتازة والتكلفة تحت السيطرة.",
-      action_code:"SCALE_UP",
-      advice:"الـ Funnel يخدم بالباهي. زيد في الميزانية (Budget) بنسبة 20% كل يومين (Scaling) واستحفظ على نفس الإعدادات."
+      priority:6, key:"CPM_BARRIER", label:"P6 · CPM BARRIER — منافسة شرسة",
+      severity:"info", action:"NARROW", icon:"💰",
+      msg:"Concurrence forte (CPM cher) et CTR faible. Élargissez l'audience ou changez d'angle.",
+      test: m => m.cpm > 10 && m.ctr_link < 1.5
+    },
+    {
+      priority:7, key:"SCALING", label:"P7 · SCALING — حملة رابحة",
+      severity:"good", action:"SCALE UP", icon:"🚀",
+      msg:"Campagne RENTABLE ! Augmentez le budget de 20%.",
+      test: m => m.purchases > 0 && m.cpa_actual <= m.target_cpa && m.frequency < 2.5
     }
   ];
 
   // ---------- Helpers ----------
   const $ = id => document.getElementById(id);
-  const num = id => {
-    const v = parseFloat($(id).value);
-    return isFinite(v) && v >= 0 ? v : 0;
-  };
   const numOrNull = id => {
-    const raw = $(id) ? $(id).value : "";
+    const el = $(id); if (!el) return null;
+    const raw = el.value;
     if (raw === "" || raw == null) return null;
     const v = parseFloat(raw);
     return isFinite(v) && v >= 0 ? v : null;
   };
-  const intnum = id => {
-    const v = parseInt($(id).value, 10);
-    return isFinite(v) && v >= 0 ? v : 0;
-  };
+  const num = id => { const v = numOrNull(id); return v == null ? 0 : v; };
   const fmt = (v, digits=2) => {
     if (!isFinite(v)) return "—";
     return Number(v).toLocaleString("en-US", {maximumFractionDigits: digits, minimumFractionDigits: 0});
   };
   const safeDiv = (a, b) => b > 0 ? a / b : 0;
+  const escapeHtml = s => String(s)
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#39;");
 
   // ---------- Inputs / metrics ----------
   function readInputs(){
@@ -259,7 +301,8 @@
       product_price: num("product_price"),
       product_type: $("product_type").value,
       is_advantage_plus: $("is_advantage_plus").value === "true",
-      // Meta-standard metrics (as shown in Ads Manager)
+      spend_input: numOrNull("spend_input"),
+      purchases_input: numOrNull("purchases_input"),
       cpm_input: numOrNull("cpm_input"),
       cpc_link_input: numOrNull("cpc_link_input"),
       ctr_all_input: numOrNull("ctr_all_input"),
@@ -271,37 +314,102 @@
 
   function computeMetrics(i){
     const m = Object.assign({}, i);
-    // Use Meta indicators directly (null/empty => 0 so rules using > thresholds simply won't trigger).
-    m.cpa_actual        = i.cpa_input        != null ? i.cpa_input        : 0;
-    m.cpm               = i.cpm_input        != null ? i.cpm_input        : 0;
-    m.cpc_link          = i.cpc_link_input   != null ? i.cpc_link_input   : 0;
-    m.ctr_all           = i.ctr_all_input    != null ? i.ctr_all_input    : 0;
-    m.ctr_link          = i.ctr_link_input   != null ? i.ctr_link_input   : 0;
-    m.frequency         = i.frequency_input  != null ? i.frequency_input  : 0;
-    m.audience_accuracy = safeDiv(m.ctr_link, Math.max(m.ctr_all, 1)) * 100;
+    m.spend     = i.spend_input     != null ? i.spend_input     : 0;
+    m.purchases = i.purchases_input != null ? i.purchases_input : 0;
+    m.cpm       = i.cpm_input       != null ? i.cpm_input       : 0;
+    m.cpc_link  = i.cpc_link_input  != null ? i.cpc_link_input  : 0;
+    m.ctr_all   = i.ctr_all_input   != null ? i.ctr_all_input   : 0;
+    m.ctr_link  = i.ctr_link_input  != null ? i.ctr_link_input  : 0;
+    m.frequency = i.frequency_input != null ? i.frequency_input : 0;
+
+    // cpa_actual = spend / purchases (fallback to manual CPA input if needed)
+    if (m.purchases > 0) {
+      m.cpa_actual = safeDiv(m.spend, m.purchases);
+      if (m.cpa_actual === 0 && i.cpa_input != null) m.cpa_actual = i.cpa_input;
+    } else {
+      m.cpa_actual = i.cpa_input != null ? i.cpa_input : 0;
+    }
+
+    // audience_accuracy = (ctrLien / ctrTous) * 100
+    m.audience_accuracy = m.ctr_all > 0 ? (m.ctr_link / m.ctr_all) * 100 : 0;
     return m;
   }
 
+  // Evaluate ALL rules; return triggered rules sorted by priority asc.
   function evaluate(m){
-    // Sort by priority ascending, return all matching rules
     return RULES
-      .filter(r => {
-        try { return !!r.test(m); } catch(e){ return false; }
-      })
+      .filter(r => { try { return !!r.test(m); } catch(e){ return false; } })
       .sort((a,b) => a.priority - b.priority);
+  }
+
+  // ---------- Radar Chart ----------
+  // Five axes; each starts at 100, then adjusted by triggered rules.
+  // Profitability, Audience, Creative, Freshness, Scalability.
+  let radarChart = null;
+  function computeRadarScores(triggeredKeys, m){
+    const s = { Profitability:100, Audience:100, Creative:100, Freshness:100, Scalability:100 };
+    if (triggeredKeys.has("DISASTER"))    { s.Profitability = 5;  s.Scalability = 10; s.Audience = 30; }
+    if (triggeredKeys.has("UNPROFITABLE")){ s.Profitability = Math.min(s.Profitability, 25); s.Scalability = Math.min(s.Scalability, 30); }
+    if (triggeredKeys.has("AUDIENCE_AI")) { s.Audience = Math.min(s.Audience, 25); s.Creative = Math.min(s.Creative, 50); }
+    if (triggeredKeys.has("CLICKBAIT"))   { s.Creative = Math.min(s.Creative, 30); s.Audience = Math.min(s.Audience, 40); }
+    if (triggeredKeys.has("FATIGUE"))     { s.Freshness = 20; s.Scalability = Math.min(s.Scalability, 40); }
+    if (triggeredKeys.has("CPM_BARRIER")) { s.Audience = Math.min(s.Audience, 45); s.Profitability = Math.min(s.Profitability, 55); }
+    if (triggeredKeys.has("SCALING"))     { s.Profitability = Math.max(s.Profitability, 90); s.Scalability = Math.max(s.Scalability, 95); }
+    // Soft penalty if frequency ramping but not yet fatigue
+    if (!triggeredKeys.has("FATIGUE") && m.frequency >= 2.5) s.Freshness = Math.min(s.Freshness, 55);
+    return s;
+  }
+
+  function renderRadar(scores){
+    const ctx = document.getElementById("radarChart");
+    if (!ctx || typeof Chart === "undefined") return;
+    const labels = Object.keys(scores);
+    const values = labels.map(k => scores[k]);
+    const data = {
+      labels,
+      datasets: [{
+        label: "Score",
+        data: values,
+        backgroundColor: "rgba(24,119,242,.25)",
+        borderColor: "#1877f2",
+        borderWidth: 2,
+        pointBackgroundColor: "#1877f2",
+        pointRadius: 4
+      }]
+    };
+    const cfg = {
+      type:"radar", data,
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        scales:{
+          r:{
+            min:0, max:100,
+            angleLines:{ color:"rgba(255,255,255,.1)" },
+            grid:{ color:"rgba(255,255,255,.1)" },
+            pointLabels:{ color:"#cfe0ff", font:{ size:12 } },
+            ticks:{ display:false, stepSize:20 }
+          }
+        },
+        plugins:{ legend:{ display:false } }
+      }
+    };
+    if (radarChart) { radarChart.data = data; radarChart.update(); }
+    else { radarChart = new Chart(ctx, cfg); }
   }
 
   // ---------- Rendering ----------
   function renderMetrics(m){
     const cur = m.currency;
     const items = [
-      ["CPA الحالي", `${fmt(m.cpa_actual)} ${cur}`],
-      ["CPA المستهدف", `${fmt(m.target_cpa)} ${cur}`],
-      ["CPM", `${fmt(m.cpm)} ${cur}`],
+      ["CPA Actual", `${fmt(m.cpa_actual)} ${cur}`],
+      ["Target CPA", `${fmt(m.target_cpa)} ${cur}`],
+      ["Spend",      `${fmt(m.spend)} ${cur}`],
+      ["Purchases",  `${fmt(m.purchases, 0)}`],
+      ["CPM",        `${fmt(m.cpm)} ${cur}`],
       ["CPC (Link)", `${fmt(m.cpc_link)} ${cur}`],
-      ["CTR (All)", `${fmt(m.ctr_all)} %`],
+      ["CTR (All)",  `${fmt(m.ctr_all)} %`],
       ["CTR (Link)", `${fmt(m.ctr_link)} %`],
-      ["Frequency", `${fmt(m.frequency)}`],
+      ["Frequency",  `${fmt(m.frequency)}`],
       ["Audience Accuracy", `${fmt(m.audience_accuracy)} %`]
     ];
     $("metrics").innerHTML = items.map(([k,v]) =>
@@ -309,54 +417,180 @@
     ).join("");
   }
 
-  function renderVerdicts(matches){
-    const wrap = $("verdicts");
-    if (!matches.length){
-      wrap.innerHTML = `<div class="verdict">
-        <h3>✅ مافما حتى مشكل بارز
+  function renderMainDiagnostic(top){
+    const wrap = $("main-diagnostic");
+    if (!top){
+      wrap.innerHTML = `<div class="verdict p-good">
+        <h3 class="big">✅ ALL GOOD — مافما حتى مشكل بارز
+          <span class="badge">P0</span>
           <span class="action-code ac-ALL_GOOD">ALL_GOOD</span>
         </h3>
         <div class="diag">الحملة ما طلعتش أي قاعدة من قواعد الإنذار. كمل ملاحظة و راقب يومياً.</div>
       </div>`;
       return;
     }
-    wrap.innerHTML = matches.map((r, idx) => {
-      const isTop = idx === 0;
-      return `
-        <div class="verdict ${isTop ? "priority" : ""}">
-          <h3>
-            ${isTop ? "🥇 الأولوية القصوى — " : ""}${escapeHtml(r.category)}
-            <span class="badge">P${r.priority}</span>
-            <span class="action-code ac-${r.action_code}">${r.action_code}</span>
-          </h3>
-          <div class="diag">${escapeHtml(r.diagnostic)}</div>
-          <div class="advice">💡 ${escapeHtml(r.advice)}</div>
+    wrap.innerHTML = `
+      <div class="verdict priority p-${top.severity}">
+        <h3 class="big">
+          ${top.icon} ${escapeHtml(top.label)}
+          <span class="badge">${escapeHtml(top.action)}</span>
+        </h3>
+        <div class="diag">${escapeHtml(top.msg)}</div>
+      </div>`;
+  }
+
+  function renderSecondary(matches){
+    const wrap = $("secondary-warnings");
+    const rest = matches.slice(1);
+    if (!rest.length){
+      wrap.innerHTML = `<div class="sec-item"><span class="ic">👌</span><div class="body">
+        <div class="ttl">ما فما حتى نقطة ثانوية</div>
+        <div class="msg">القاعدة الأساسية فوق هي الأولوية الوحيدة المُفعّلة.</div>
+      </div></div>`;
+      return;
+    }
+    wrap.innerHTML = rest.map(r => `
+      <div class="sec-item ${r.severity === "good" ? "good" : ""}">
+        <span class="ic">${r.icon}</span>
+        <div class="body">
+          <div class="ttl">${escapeHtml(r.label)} <span class="badge">${escapeHtml(r.action)}</span></div>
+          <div class="msg">${escapeHtml(r.msg)}</div>
         </div>
-      `;
-    }).join("");
+      </div>
+    `).join("");
   }
 
   function renderAllRulesLegend(){
     $("all-rules").innerHTML = RULES.map(r =>
-      `<div>• <b>P${r.priority}</b> — ${escapeHtml(r.category)} · <code>${r.action_code}</code></div>`
+      `<div>• <b>P${r.priority}</b> — ${escapeHtml(r.label)} · <code>${escapeHtml(r.action)}</code></div>`
     ).join("");
   }
 
-  function escapeHtml(s){
-    return String(s)
-      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+  // ---------- Main analysis (the upgraded runProAnalysis) ----------
+  function runProAnalysis(){
+    const inputs = readInputs();
+    if (inputs.target_cpa <= 0){
+      alert("الرجاء إدخال الـ Target CPA (أكبر من صفر).");
+      $("target_cpa").focus();
+      return;
+    }
+    const hasSpendPurchases = (inputs.spend_input != null && inputs.spend_input > 0)
+                           && (inputs.purchases_input != null);
+    const hasCpa = inputs.cpa_input != null && inputs.cpa_input > 0;
+    if (!hasSpendPurchases && !hasCpa){
+      alert("الرجاء إدخال Spend + Purchases (أو CPA يدوي على الأقل).");
+      $("spend_input").focus();
+      return;
+    }
+    saveState();
+    const m = computeMetrics(inputs);
+    const matches = evaluate(m);
+    const triggeredKeys = new Set(matches.map(r => r.key));
+    renderMetrics(m);
+    renderMainDiagnostic(matches[0] || null);
+    renderSecondary(matches);
+    renderRadar(computeRadarScores(triggeredKeys, m));
+    const r = $("results");
+    r.classList.remove("hidden");
+    r.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+
+  // ---------- OCR (Tesseract.js) ----------
+  function setOcrProgress(p, label){
+    const bar = $("ocr_bar");
+    if (bar) bar.style.width = Math.max(0, Math.min(100, Math.round(p*100))) + "%";
+    if (label) $("ocr_status").textContent = label;
+  }
+
+  // Best-effort parsing of common Meta Ads Manager metric labels from raw OCR text.
+  function parseOcrText(text){
+    const out = {};
+    const t = text.replace(/[,\u066B]/g, ".").replace(/[\u066C]/g, ""); // normalize separators
+    const grab = (re) => { const m = t.match(re); return m ? parseFloat(m[1]) : null; };
+
+    // CPM
+    const cpm = grab(/CPM[^0-9\-]*([0-9]+(?:\.[0-9]+)?)/i);
+    if (cpm != null) out.cpm_input = cpm;
+
+    // CPC (link)
+    const cpc = grab(/CPC[^0-9\-]*([0-9]+(?:\.[0-9]+)?)/i);
+    if (cpc != null) out.cpc_link_input = cpc;
+
+    // CTR (all) and CTR (link)
+    const ctrLink = grab(/CTR[^a-z\n]*\(?\s*(?:link|lien)[^\)]*\)?[^0-9\-]*([0-9]+(?:\.[0-9]+)?)/i);
+    if (ctrLink != null) out.ctr_link_input = ctrLink;
+    const ctrAll = grab(/CTR[^a-z\n]*\(?\s*(?:all|tous|tout)[^\)]*\)?[^0-9\-]*([0-9]+(?:\.[0-9]+)?)/i);
+    if (ctrAll != null) out.ctr_all_input = ctrAll;
+
+    // Frequency
+    const freq = grab(/(?:Frequency|Fréquence|Fréq)\D*([0-9]+(?:\.[0-9]+)?)/i);
+    if (freq != null) out.frequency_input = freq;
+
+    // Spend / Amount spent
+    const spend = grab(/(?:Amount\s*spent|Montant\s*dépensé|Spend|D[ée]pens[eé])\D*([0-9]+(?:\.[0-9]+)?)/i);
+    if (spend != null) out.spend_input = spend;
+
+    // Purchases / Achats
+    const purchases = grab(/(?:Purchases|Achats|Results)\D*([0-9]+(?:\.[0-9]+)?)/i);
+    if (purchases != null) out.purchases_input = purchases;
+
+    // Cost per purchase
+    const cpa = grab(/(?:Cost\s*per\s*purchase|Co[uû]t\s*par\s*achat|CPA)\D*([0-9]+(?:\.[0-9]+)?)/i);
+    if (cpa != null) out.cpa_input = cpa;
+
+    return out;
+  }
+
+  function applyOcrResults(parsed){
+    const fields = ["cpm_input","cpc_link_input","ctr_all_input","ctr_link_input",
+                    "frequency_input","spend_input","purchases_input","cpa_input"];
+    const filled = [];
+    fields.forEach(f => {
+      if (parsed[f] != null && $(f)){
+        $(f).value = parsed[f];
+        filled.push(f);
+      }
+    });
+    saveState();
+    return filled;
+  }
+
+  async function handleOcrFile(file){
+    if (!file) return;
+    if (typeof Tesseract === "undefined"){
+      $("ocr_status").textContent = "❌ Tesseract.js ما تحمّلش (تأكد من الإنترنت).";
+      return;
+    }
+    setOcrProgress(0.02, "⏳ تحضير الـ OCR…");
+    try {
+      const { data } = await Tesseract.recognize(file, "eng", {
+        logger: msg => {
+          if (msg.status && typeof msg.progress === "number"){
+            setOcrProgress(msg.progress, `OCR: ${msg.status} — ${(msg.progress*100).toFixed(0)}%`);
+          }
+        }
+      });
+      const parsed = parseOcrText(data.text || "");
+      const filled = applyOcrResults(parsed);
+      setOcrProgress(1, filled.length
+        ? `✅ تعمرت ${filled.length} خانة من الصورة: ${filled.join(", ")}`
+        : "⚠️ ما لقيتش مؤشرات معروفة. تثبت في الصورة أو أكتب المعطيات يدوياً.");
+    } catch (err) {
+      console.error(err);
+      setOcrProgress(0, "❌ مشكل في قراءة الصورة. حاول صورة أوضح.");
+    }
   }
 
   // ---------- Persistence ----------
-  const STORAGE_KEY = "metaAdsAnalyser_v2";
+  const STORAGE_KEY = "adAnalyserPro_v3";
   const FIELDS = ["currency","target_cpa","product_price","product_type","is_advantage_plus",
+    "spend_input","purchases_input",
     "cpm_input","cpc_link_input","ctr_all_input","ctr_link_input","frequency_input","cpa_input"];
 
   function saveState(){
     try{
       const data = {};
-      FIELDS.forEach(f => data[f] = $(f).value);
+      FIELDS.forEach(f => { if ($(f)) data[f] = $(f).value; });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }catch(e){/* ignore */}
   }
@@ -365,7 +599,7 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const data = JSON.parse(raw);
-      FIELDS.forEach(f => { if (data[f] !== undefined) $(f).value = data[f]; });
+      FIELDS.forEach(f => { if (data[f] !== undefined && $(f)) $(f).value = data[f]; });
     }catch(e){/* ignore */}
   }
 
@@ -376,43 +610,33 @@
 
     $("ads-form").addEventListener("submit", e => {
       e.preventDefault();
-      const inputs = readInputs();
-      if (inputs.target_cpa <= 0){
-        alert("الرجاء إدخال الـ CPA المستهدف (أكبر من صفر).");
-        $("target_cpa").focus();
-        return;
-      }
-      if (inputs.cpa_input == null || inputs.cpa_input <= 0){
-        alert("الرجاء إدخال الـ Cost per Purchase (CPA) من مؤشرات Meta.");
-        $("cpa_input").focus();
-        return;
-      }
-      saveState();
-      const m = computeMetrics(inputs);
-      const matches = evaluate(m);
-      renderMetrics(m);
-      renderVerdicts(matches);
-      const r = $("results");
-      r.classList.remove("hidden");
-      r.scrollIntoView({behavior:"smooth", block:"start"});
+      runProAnalysis();
     });
 
     $("reset-btn").addEventListener("click", () => {
       if (!confirm("تحب تمسح كل المعطيات؟")) return;
       FIELDS.forEach(f => {
-        const el = $(f);
+        const el = $(f); if (!el) return;
         if (el.tagName === "SELECT") el.selectedIndex = 0;
         else if (f === "currency") el.value = "USD";
         else el.value = "";
       });
       try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
       $("results").classList.add("hidden");
+      setOcrProgress(0, "جاهز. اختار صورة باش نقرا الأرقام أوتوماتيكياً.");
       window.scrollTo({top:0, behavior:"smooth"});
     });
 
     // Auto-save on input changes
     FIELDS.forEach(f => {
-      $(f).addEventListener("change", saveState);
+      const el = $(f); if (el) el.addEventListener("change", saveState);
+    });
+
+    // OCR upload handler
+    const ocrInput = $("ocr_file");
+    if (ocrInput) ocrInput.addEventListener("change", e => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleOcrFile(file);
     });
   });
 })();
