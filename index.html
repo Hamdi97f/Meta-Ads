@@ -135,39 +135,13 @@
       </div>
     </section>
 
-    <!-- Campaign data (Meta Ads Manager standard names) -->
+    <!-- Meta indicators (taken directly from Ads Manager) -->
     <section class="card">
-      <h2>📥 بيانات الحملة (Meta Ads Manager)</h2>
-      <p class="legend" style="margin:0 0 10px">استعمل نفس الأسماء القياسية متاع Meta Ads Manager.</p>
+      <h2>📊 مؤشرات Meta</h2>
+      <p class="legend" style="margin:0 0 10px">اكتب المؤشرات كيما تظهرلك في Meta Ads Manager. المطلوب الإجباري هو الـ CPA (Cost per Purchase).</p>
       <div class="grid">
-        <div class="row"><label for="spend">Amount Spent (المصاريف)</label>
-          <input id="spend" type="number" step="0.01" min="0" inputmode="decimal" required /></div>
-        <div class="row"><label for="revenue">Purchase Conversion Value (المداخيل)</label>
-          <input id="revenue" type="number" step="0.01" min="0" inputmode="decimal" /></div>
-        <div class="row"><label for="purchases">Purchases (عدد المبيعات)</label>
-          <input id="purchases" type="number" step="1" min="0" inputmode="numeric" required /></div>
-        <div class="row"><label for="impressions">Impressions</label>
-          <input id="impressions" type="number" step="1" min="0" inputmode="numeric" required /></div>
-        <div class="row"><label for="reach">Reach</label>
-          <input id="reach" type="number" step="1" min="0" inputmode="numeric" required /></div>
-        <div class="row"><label for="clicks_all">Clicks (all)</label>
-          <input id="clicks_all" type="number" step="1" min="0" inputmode="numeric" /></div>
-        <div class="row"><label for="clicks_link">Link Clicks</label>
-          <input id="clicks_link" type="number" step="1" min="0" inputmode="numeric" /></div>
-        <div class="row"><label for="landing_page_views">Landing Page Views</label>
-          <input id="landing_page_views" type="number" step="1" min="0" inputmode="numeric" /></div>
-        <div class="row"><label for="add_to_cart">Adds to Cart</label>
-          <input id="add_to_cart" type="number" step="1" min="0" inputmode="numeric" /></div>
-        <div class="row"><label for="initiate_checkout">Checkouts Initiated</label>
-          <input id="initiate_checkout" type="number" step="1" min="0" inputmode="numeric" /></div>
-      </div>
-    </section>
-
-    <!-- Meta computed metrics (optional overrides, taken directly from Ads Manager) -->
-    <section class="card">
-      <h2>📊 مؤشرات Meta (اختياري)</h2>
-      <p class="legend" style="margin:0 0 10px">إذا تكتبهم، يتسعملو كيما هوما. كان تفرغهم، يتحسبو أوتوماتيك من البيانات الفوق.</p>
-      <div class="grid">
+        <div class="row"><label for="cpa_input">Cost per Purchase (CPA)</label>
+          <input id="cpa_input" type="number" step="0.01" min="0" inputmode="decimal" required /></div>
         <div class="row"><label for="cpm_input">CPM (Cost per 1,000 Impressions)</label>
           <input id="cpm_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
         <div class="row"><label for="cpc_link_input">CPC (Cost per Link Click)</label>
@@ -178,8 +152,6 @@
           <input id="ctr_link_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
         <div class="row"><label for="frequency_input">Frequency</label>
           <input id="frequency_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
-        <div class="row"><label for="cpa_input">Cost per Purchase (CPA)</label>
-          <input id="cpa_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
       </div>
       <div class="actions">
         <button type="submit" class="btn-primary">🔍 حلّل الحملة</button>
@@ -214,71 +186,43 @@
   // Each rule returns true/false given the computed `m` (metrics + inputs).
   const RULES = [
     {
-      priority:1, category:"DISASTER_RECOVERY", rule_id:"critical_bleeding",
-      test: m => m.purchases === 0 && m.spend >= (m.target_cpa * 2),
-      diagnostic:"🚨 استنزاف حاد للميزانية: صرفت الدوبل متاع الـ CPA المستهدف وما فما حتى بيعة.",
-      action_code:"KILL_AD_IMMEDIATELY",
-      advice:"قص الإعلان فوراً. الفلوس قاعدة تمشي في الفارغ، فما مشكلة كبيرة (Bug في الموقع أو عرض غير مقبول تماماً)."
-    },
-    {
-      priority:2, category:"FINANCIAL_OPTIMIZATION", rule_id:"unprofitable_sales",
-      test: m => m.purchases > 0 && m.cpa_actual > m.target_cpa,
+      priority:1, category:"FINANCIAL_OPTIMIZATION", rule_id:"unprofitable_sales",
+      test: m => m.cpa_actual > m.target_cpa,
       diagnostic:"⚠️ مبيعات بالخسارة: المبيعة قاعدة تتكلف أكثر ملّي حددتو (CPA طالع).",
       action_code:"OPTIMIZE_OR_PAUSE",
       advice:"إذا تبيع في منتج ملموس، حاول تزيد منتج آخر معاه (Upsell) باش تطلع الـ Panier Moyen. إذا سوفتوير، راجع سعر الاشتراك أو العرض."
     },
     {
-      priority:3, category:"TECHNICAL_LEAK", rule_id:"site_speed_critical",
-      test: m => m.clicks_link > 50 && m.load_rate < 60,
-      diagnostic:"🐌 هروب تقني: أكثر من 40% من العباد نزلو على الرابط وهربو قبل ما يتحل السيت.",
-      action_code:"FIX_SITE_SPEED",
-      advice:"الموقع متاعك رزين برشا. العباد قاعدة تضيع في ثنية الـ Chargement. حسّن الـ Hosting أو صغّر التصاور."
-    },
-    {
-      priority:4, category:"OFFER_MISMATCH", rule_id:"zero_add_to_cart",
-      test: m => m.landing_page_views > 100 && m.add_to_cart === 0,
-      diagnostic:"🥶 برود تام في الموقع: العباد تدخل وتقرا، أما حتى حد ما ينزل 'أضف للسلة'.",
-      action_code:"REVAMP_LANDING_PAGE",
-      advice:"العرض (Offer) ما أقنعهمش أو السوم غالي. إذا كان البرنامج Offline، وضح مليح اللي راهو ما يستحقش انترنات، وإذا منتج مادي وضح الفائدة متاعو مباشرة."
-    },
-    {
-      priority:5, category:"CHECKOUT_LEAK", rule_id:"high_checkout_abandonment",
-      test: m => m.initiate_checkout > 10 && m.checkout_dropoff > 80,
-      diagnostic:"🛒 تخلي عن الشراء: العباد وصلت لآخر مرحلة باش تخلص/تعدي الكومند وبطلت.",
-      action_code:"FIX_CHECKOUT_FRICTION",
-      advice:"غالباً المشكلة في تكلفة التوصيل (Livraison) صدمتهم، أو الفورمولار طويل برشا، أو ما فماش ثقة كافية (زيد آراء حرفاء)."
-    },
-    {
-      priority:6, category:"AUDIENCE_QUALITY", rule_id:"advantage_plus_confused",
-      test: m => m.is_advantage_plus === true && m.audience_accuracy < 20,
+      priority:2, category:"AUDIENCE_QUALITY", rule_id:"advantage_plus_confused",
+      test: m => m.is_advantage_plus === true && m.ctr_all > 0 && m.ctr_link > 0 && m.audience_accuracy < 20,
       diagnostic:"🤖 ذكاء اصطناعي ضائع: Meta Advantage+ قاعد يجيب في عباد غالطة تتفاعل وما تكليكيش.",
       action_code:"GUIDE_THE_AI",
       advice:"خوارزمية فيسبوك ما فهمتش شكون الكليون متاعك. لازمك تبدل الـ Creative وتكتب ميساج واضح (مثلا: 'لأصحاب المطاعم' أو 'لأصحاب الشركات') باش توجه الـ AI."
     },
     {
-      priority:7, category:"CREATIVE_EFFICIENCY", rule_id:"clickbait_creative",
-      test: m => m.ctr_all > 5 && m.ctr_link < 1,
+      priority:3, category:"CREATIVE_EFFICIENCY", rule_id:"clickbait_creative",
+      test: m => m.ctr_all > 5 && m.ctr_link > 0 && m.ctr_link < 1,
       diagnostic:"🎣 فخ نقرات (Clickbait): تفاعل وهمي عالي جداً مع نسبة زيارات ضعيفة.",
       action_code:"ALIGN_CREATIVE_INTENT",
       advice:"التصويرة أو الفيديو تجيب في الـ J'aime أما ما تبيعش. ركز في الفيديو الجاي على حل المشكلة متاع الحريف موش على البوز."
     },
     {
-      priority:8, category:"CREATIVE_EFFICIENCY", rule_id:"ad_fatigue",
+      priority:4, category:"CREATIVE_EFFICIENCY", rule_id:"ad_fatigue",
       test: m => m.frequency > 3 && m.cpa_actual >= m.target_cpa,
       diagnostic:"🥱 إرهاق إعلاني (Ad Fatigue): الإعلان تحرق والجمهور فد منو.",
       action_code:"REFRESH_CREATIVE",
       advice:"نفس العباد شافت الإعلان برشا مرات. بدّل الـ Hook (أول 3 ثواني) أو اصنع زوايا تسويقية جديدة."
     },
     {
-      priority:9, category:"COST_WARNING", rule_id:"high_cpm_barrier",
-      test: m => m.cpm > 10 && m.ctr_link < 1.5,
+      priority:5, category:"COST_WARNING", rule_id:"high_cpm_barrier",
+      test: m => m.cpm > 10 && m.ctr_link > 0 && m.ctr_link < 1.5,
       diagnostic:"💰 منافسة شرسة: الـ CPM غالي برشا (قاعد تخلص برشا باش تظهر) والـ CTR طايح.",
       action_code:"NARROW_OR_CHANGE_ANGLE",
       advice:"الجمهور اللي تستهدف فيه عليه برشا منافسة. جرب وسّع الجمهور شوية أو بدّل الـ Message باش تطلع الـ CTR وتطيح التكلفة."
     },
     {
-      priority:10, category:"SCALING", rule_id:"profitable_scaling",
-      test: m => m.purchases > 1 && m.cpa_actual <= m.target_cpa && m.frequency < 2.5,
+      priority:6, category:"SCALING", rule_id:"profitable_scaling",
+      test: m => m.cpa_actual <= m.target_cpa && m.frequency > 0 && m.frequency < 2.5,
       diagnostic:"🚀 حملة ناجحة ومربحة: الأرقام ممتازة والتكلفة تحت السيطرة.",
       action_code:"SCALE_UP",
       advice:"الـ Funnel يخدم بالباهي. زيد في الميزانية (Budget) بنسبة 20% كل يومين (Scaling) واستحفظ على نفس الإعدادات."
@@ -315,17 +259,7 @@
       product_price: num("product_price"),
       product_type: $("product_type").value,
       is_advantage_plus: $("is_advantage_plus").value === "true",
-      spend: num("spend"),
-      revenue: num("revenue"),
-      purchases: intnum("purchases"),
-      impressions: intnum("impressions"),
-      reach: intnum("reach"),
-      clicks_all: intnum("clicks_all"),
-      clicks_link: intnum("clicks_link"),
-      landing_page_views: intnum("landing_page_views"),
-      add_to_cart: intnum("add_to_cart"),
-      initiate_checkout: intnum("initiate_checkout"),
-      // Optional Meta-standard metric overrides (as shown in Ads Manager)
+      // Meta-standard metrics (as shown in Ads Manager)
       cpm_input: numOrNull("cpm_input"),
       cpc_link_input: numOrNull("cpc_link_input"),
       ctr_all_input: numOrNull("ctr_all_input"),
@@ -337,18 +271,14 @@
 
   function computeMetrics(i){
     const m = Object.assign({}, i);
-    // Prefer user-entered Meta metrics; otherwise compute from raw counts.
-    m.cpa_actual       = i.cpa_input        != null ? i.cpa_input        : safeDiv(i.spend, Math.max(i.purchases, 1));
-    m.cpm              = i.cpm_input        != null ? i.cpm_input        : safeDiv(i.spend, i.impressions) * 1000;
-    m.cpc_link         = i.cpc_link_input   != null ? i.cpc_link_input   : safeDiv(i.spend, Math.max(i.clicks_link, 1));
-    m.ctr_all          = i.ctr_all_input    != null ? i.ctr_all_input    : safeDiv(i.clicks_all, i.impressions) * 100;
-    m.ctr_link         = i.ctr_link_input   != null ? i.ctr_link_input   : safeDiv(i.clicks_link, i.impressions) * 100;
-    m.frequency        = i.frequency_input  != null ? i.frequency_input  : safeDiv(i.impressions, i.reach);
-    m.load_rate        = safeDiv(i.landing_page_views, Math.max(i.clicks_link, 1)) * 100;
-    m.atc_rate         = safeDiv(i.add_to_cart, Math.max(i.landing_page_views, 1)) * 100;
-    m.checkout_dropoff = 100 - safeDiv(i.purchases, Math.max(i.initiate_checkout, 1)) * 100;
-    m.audience_accuracy= safeDiv(m.ctr_link, Math.max(m.ctr_all, 1)) * 100;
-    m.roas             = safeDiv(i.revenue, i.spend);
+    // Use Meta indicators directly (null/empty => 0 so rules using > thresholds simply won't trigger).
+    m.cpa_actual        = i.cpa_input        != null ? i.cpa_input        : 0;
+    m.cpm               = i.cpm_input        != null ? i.cpm_input        : 0;
+    m.cpc_link          = i.cpc_link_input   != null ? i.cpc_link_input   : 0;
+    m.ctr_all           = i.ctr_all_input    != null ? i.ctr_all_input    : 0;
+    m.ctr_link          = i.ctr_link_input   != null ? i.ctr_link_input   : 0;
+    m.frequency         = i.frequency_input  != null ? i.frequency_input  : 0;
+    m.audience_accuracy = safeDiv(m.ctr_link, Math.max(m.ctr_all, 1)) * 100;
     return m;
   }
 
@@ -372,11 +302,7 @@
       ["CTR (All)", `${fmt(m.ctr_all)} %`],
       ["CTR (Link)", `${fmt(m.ctr_link)} %`],
       ["Frequency", `${fmt(m.frequency)}`],
-      ["Load Rate", `${fmt(m.load_rate)} %`],
-      ["ATC Rate", `${fmt(m.atc_rate)} %`],
-      ["Checkout Drop-off", `${fmt(m.checkout_dropoff)} %`],
-      ["Audience Accuracy", `${fmt(m.audience_accuracy)} %`],
-      ["ROAS", `${fmt(m.roas)}×`]
+      ["Audience Accuracy", `${fmt(m.audience_accuracy)} %`]
     ];
     $("metrics").innerHTML = items.map(([k,v]) =>
       `<div class="metric"><div class="k">${k}</div><div class="v">${v}</div></div>`
@@ -425,8 +351,6 @@
   // ---------- Persistence ----------
   const STORAGE_KEY = "metaAdsAnalyser_v2";
   const FIELDS = ["currency","target_cpa","product_price","product_type","is_advantage_plus",
-    "spend","revenue","purchases","impressions","reach","clicks_all","clicks_link",
-    "landing_page_views","add_to_cart","initiate_checkout",
     "cpm_input","cpc_link_input","ctr_all_input","ctr_link_input","frequency_input","cpa_input"];
 
   function saveState(){
@@ -458,8 +382,9 @@
         $("target_cpa").focus();
         return;
       }
-      if (inputs.spend <= 0 && inputs.impressions <= 0){
-        alert("الرجاء إدخال على الأقل المصاريف (Spend) و الـ Impressions.");
+      if (inputs.cpa_input == null || inputs.cpa_input <= 0){
+        alert("الرجاء إدخال الـ Cost per Purchase (CPA) من مؤشرات Meta.");
+        $("cpa_input").focus();
         return;
       }
       saveState();
