@@ -135,30 +135,51 @@
       </div>
     </section>
 
-    <!-- Campaign data -->
+    <!-- Campaign data (Meta Ads Manager standard names) -->
     <section class="card">
-      <h2>📥 بيانات الحملة</h2>
+      <h2>📥 بيانات الحملة (Meta Ads Manager)</h2>
+      <p class="legend" style="margin:0 0 10px">استعمل نفس الأسماء القياسية متاع Meta Ads Manager.</p>
       <div class="grid">
-        <div class="row"><label for="spend">المصاريف (Spend)</label>
+        <div class="row"><label for="spend">Amount Spent (المصاريف)</label>
           <input id="spend" type="number" step="0.01" min="0" inputmode="decimal" required /></div>
-        <div class="row"><label for="revenue">المداخيل (Revenue)</label>
+        <div class="row"><label for="revenue">Purchase Conversion Value (المداخيل)</label>
           <input id="revenue" type="number" step="0.01" min="0" inputmode="decimal" /></div>
-        <div class="row"><label for="purchases">عدد المبيعات (Purchases)</label>
+        <div class="row"><label for="purchases">Purchases (عدد المبيعات)</label>
           <input id="purchases" type="number" step="1" min="0" inputmode="numeric" required /></div>
         <div class="row"><label for="impressions">Impressions</label>
           <input id="impressions" type="number" step="1" min="0" inputmode="numeric" required /></div>
         <div class="row"><label for="reach">Reach</label>
           <input id="reach" type="number" step="1" min="0" inputmode="numeric" required /></div>
-        <div class="row"><label for="clicks_all">Clicks (All)</label>
+        <div class="row"><label for="clicks_all">Clicks (all)</label>
           <input id="clicks_all" type="number" step="1" min="0" inputmode="numeric" /></div>
-        <div class="row"><label for="clicks_link">Clicks (Link)</label>
+        <div class="row"><label for="clicks_link">Link Clicks</label>
           <input id="clicks_link" type="number" step="1" min="0" inputmode="numeric" /></div>
         <div class="row"><label for="landing_page_views">Landing Page Views</label>
           <input id="landing_page_views" type="number" step="1" min="0" inputmode="numeric" /></div>
-        <div class="row"><label for="add_to_cart">Add to Cart</label>
+        <div class="row"><label for="add_to_cart">Adds to Cart</label>
           <input id="add_to_cart" type="number" step="1" min="0" inputmode="numeric" /></div>
-        <div class="row"><label for="initiate_checkout">Initiate Checkout</label>
+        <div class="row"><label for="initiate_checkout">Checkouts Initiated</label>
           <input id="initiate_checkout" type="number" step="1" min="0" inputmode="numeric" /></div>
+      </div>
+    </section>
+
+    <!-- Meta computed metrics (optional overrides, taken directly from Ads Manager) -->
+    <section class="card">
+      <h2>📊 مؤشرات Meta (اختياري)</h2>
+      <p class="legend" style="margin:0 0 10px">إذا تكتبهم، يتسعملو كيما هوما. كان تفرغهم، يتحسبو أوتوماتيك من البيانات الفوق.</p>
+      <div class="grid">
+        <div class="row"><label for="cpm_input">CPM (Cost per 1,000 Impressions)</label>
+          <input id="cpm_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
+        <div class="row"><label for="cpc_link_input">CPC (Cost per Link Click)</label>
+          <input id="cpc_link_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
+        <div class="row"><label for="ctr_all_input">CTR (All) %</label>
+          <input id="ctr_all_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
+        <div class="row"><label for="ctr_link_input">CTR (Link Click-Through Rate) %</label>
+          <input id="ctr_link_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
+        <div class="row"><label for="frequency_input">Frequency</label>
+          <input id="frequency_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
+        <div class="row"><label for="cpa_input">Cost per Purchase (CPA)</label>
+          <input id="cpa_input" type="number" step="0.01" min="0" inputmode="decimal" /></div>
       </div>
       <div class="actions">
         <button type="submit" class="btn-primary">🔍 حلّل الحملة</button>
@@ -270,6 +291,12 @@
     const v = parseFloat($(id).value);
     return isFinite(v) && v >= 0 ? v : 0;
   };
+  const numOrNull = id => {
+    const raw = $(id) ? $(id).value : "";
+    if (raw === "" || raw == null) return null;
+    const v = parseFloat(raw);
+    return isFinite(v) && v >= 0 ? v : null;
+  };
   const intnum = id => {
     const v = parseInt($(id).value, 10);
     return isFinite(v) && v >= 0 ? v : 0;
@@ -297,18 +324,26 @@
       clicks_link: intnum("clicks_link"),
       landing_page_views: intnum("landing_page_views"),
       add_to_cart: intnum("add_to_cart"),
-      initiate_checkout: intnum("initiate_checkout")
+      initiate_checkout: intnum("initiate_checkout"),
+      // Optional Meta-standard metric overrides (as shown in Ads Manager)
+      cpm_input: numOrNull("cpm_input"),
+      cpc_link_input: numOrNull("cpc_link_input"),
+      ctr_all_input: numOrNull("ctr_all_input"),
+      ctr_link_input: numOrNull("ctr_link_input"),
+      frequency_input: numOrNull("frequency_input"),
+      cpa_input: numOrNull("cpa_input")
     };
   }
 
   function computeMetrics(i){
     const m = Object.assign({}, i);
-    m.cpa_actual       = safeDiv(i.spend, Math.max(i.purchases, 1));
-    m.cpm              = safeDiv(i.spend, i.impressions) * 1000;
-    m.cpc_link         = safeDiv(i.spend, Math.max(i.clicks_link, 1));
-    m.ctr_all          = safeDiv(i.clicks_all, i.impressions) * 100;
-    m.ctr_link         = safeDiv(i.clicks_link, i.impressions) * 100;
-    m.frequency        = safeDiv(i.impressions, i.reach);
+    // Prefer user-entered Meta metrics; otherwise compute from raw counts.
+    m.cpa_actual       = i.cpa_input        != null ? i.cpa_input        : safeDiv(i.spend, Math.max(i.purchases, 1));
+    m.cpm              = i.cpm_input        != null ? i.cpm_input        : safeDiv(i.spend, i.impressions) * 1000;
+    m.cpc_link         = i.cpc_link_input   != null ? i.cpc_link_input   : safeDiv(i.spend, Math.max(i.clicks_link, 1));
+    m.ctr_all          = i.ctr_all_input    != null ? i.ctr_all_input    : safeDiv(i.clicks_all, i.impressions) * 100;
+    m.ctr_link         = i.ctr_link_input   != null ? i.ctr_link_input   : safeDiv(i.clicks_link, i.impressions) * 100;
+    m.frequency        = i.frequency_input  != null ? i.frequency_input  : safeDiv(i.impressions, i.reach);
     m.load_rate        = safeDiv(i.landing_page_views, Math.max(i.clicks_link, 1)) * 100;
     m.atc_rate         = safeDiv(i.add_to_cart, Math.max(i.landing_page_views, 1)) * 100;
     m.checkout_dropoff = 100 - safeDiv(i.purchases, Math.max(i.initiate_checkout, 1)) * 100;
@@ -391,7 +426,8 @@
   const STORAGE_KEY = "metaAdsAnalyser_v2";
   const FIELDS = ["currency","target_cpa","product_price","product_type","is_advantage_plus",
     "spend","revenue","purchases","impressions","reach","clicks_all","clicks_link",
-    "landing_page_views","add_to_cart","initiate_checkout"];
+    "landing_page_views","add_to_cart","initiate_checkout",
+    "cpm_input","cpc_link_input","ctr_all_input","ctr_link_input","frequency_input","cpa_input"];
 
   function saveState(){
     try{
